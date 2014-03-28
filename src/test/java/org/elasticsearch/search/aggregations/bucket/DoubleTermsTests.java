@@ -34,7 +34,6 @@ import org.elasticsearch.search.aggregations.metrics.sum.Sum;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.elasticsearch.test.cache.recycler.MockBigArrays;
 import org.hamcrest.Matchers;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -45,6 +44,7 @@ import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 import static org.elasticsearch.index.query.QueryBuilders.functionScoreQuery;
 import static org.elasticsearch.index.query.QueryBuilders.matchAllQuery;
 import static org.elasticsearch.search.aggregations.AggregationBuilders.*;
+import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertSearchResponse;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
@@ -53,14 +53,14 @@ import static org.hamcrest.core.IsNull.notNullValue;
 /**
  *
  */
+@ElasticsearchIntegrationTest.SuiteScopeTest
 public class DoubleTermsTests extends ElasticsearchIntegrationTest {
 
     private static final int NUM_DOCS = 5; // TODO: randomize the size?
     private static final String SINGLE_VALUED_FIELD_NAME = "d_value";
     private static final String MULTI_VALUED_FIELD_NAME = "d_values";
 
-    @Before
-    public void init() throws Exception {
+    public void setupSuiteScopeCluster() throws Exception {
         createIndex("idx");
 
         IndexRequestBuilder[] lowcardBuilders = new IndexRequestBuilder[NUM_DOCS];
@@ -82,9 +82,18 @@ public class DoubleTermsTests extends ElasticsearchIntegrationTest {
                     .startArray(MULTI_VALUED_FIELD_NAME).value((double)i).value(i + 1d).endArray()
                     .endObject());
         }
-        indexRandom(true, highCardBuilders);
+        indexRandom(randomBoolean(), highCardBuilders);
 
         createIndex("idx_unmapped");
+        assertAcked(prepareCreate("empty_bucket_idx").addMapping("type", SINGLE_VALUED_FIELD_NAME, "type=integer"));
+        List<IndexRequestBuilder> builders = new ArrayList<>();
+        for (int i = 0; i < 2; i++) {
+            builders.add(client().prepareIndex("empty_bucket_idx", "type", ""+i).setSource(jsonBuilder()
+                    .startObject()
+                    .field(SINGLE_VALUED_FIELD_NAME, i*2)
+                    .endObject()));
+        }
+        indexRandom(true, builders.toArray(new IndexRequestBuilder[builders.size()]));
         ensureSearchable();
     }
 
@@ -610,16 +619,6 @@ public class DoubleTermsTests extends ElasticsearchIntegrationTest {
 
     @Test
     public void emptyAggregation() throws Exception {
-        prepareCreate("empty_bucket_idx").addMapping("type", SINGLE_VALUED_FIELD_NAME, "type=integer").execute().actionGet();
-        List<IndexRequestBuilder> builders = new ArrayList<>();
-        for (int i = 0; i < 2; i++) {
-            builders.add(client().prepareIndex("empty_bucket_idx", "type", ""+i).setSource(jsonBuilder()
-                    .startObject()
-                    .field(SINGLE_VALUED_FIELD_NAME, i*2)
-                    .endObject()));
-        }
-        indexRandom(true, builders.toArray(new IndexRequestBuilder[builders.size()]));
-
         SearchResponse searchResponse = client().prepareSearch("empty_bucket_idx")
                 .setQuery(matchAllQuery())
                 .addAggregation(histogram("histo").field(SINGLE_VALUED_FIELD_NAME).interval(1l).minDocCount(0)

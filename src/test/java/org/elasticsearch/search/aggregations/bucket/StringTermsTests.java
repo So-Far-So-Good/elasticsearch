@@ -34,7 +34,6 @@ import org.elasticsearch.search.aggregations.metrics.valuecount.ValueCount;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.elasticsearch.test.cache.recycler.MockBigArrays;
 import org.hamcrest.Matchers;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -54,6 +53,7 @@ import static org.hamcrest.core.IsNull.notNullValue;
 /**
  *
  */
+@ElasticsearchIntegrationTest.SuiteScopeTest
 public class StringTermsTests extends ElasticsearchIntegrationTest {
 
     private static final String SINGLE_VALUED_FIELD_NAME = "s_value";
@@ -63,8 +63,8 @@ public class StringTermsTests extends ElasticsearchIntegrationTest {
         return randomBoolean() ? null : randomFrom(TermsAggregatorFactory.ExecutionMode.values()).toString();
     }
 
-    @Before
-    public void init() throws Exception {
+    @Override
+    public void setupSuiteScopeCluster() throws Exception {
         createIndex("idx");
         IndexRequestBuilder[] lowCardBuilders = new IndexRequestBuilder[5]; // TODO randomize the size?
         for (int i = 0; i < lowCardBuilders.length; i++) {
@@ -87,6 +87,15 @@ public class StringTermsTests extends ElasticsearchIntegrationTest {
                     .endObject());
         }
         indexRandom(true, highCardBuilders);
+        prepareCreate("empty_bucket_idx").addMapping("type", SINGLE_VALUED_FIELD_NAME, "type=integer").execute().actionGet();
+        List<IndexRequestBuilder> builders = new ArrayList<>();
+        for (int i = 0; i < 2; i++) {
+            builders.add(client().prepareIndex("empty_bucket_idx", "type", ""+i).setSource(jsonBuilder()
+                    .startObject()
+                    .field(SINGLE_VALUED_FIELD_NAME, i*2)
+                    .endObject()));
+        }
+        indexRandom(true, builders.toArray(new IndexRequestBuilder[builders.size()]));
         createIndex("idx_unmapped");
         ensureSearchable();
     }
@@ -765,16 +774,6 @@ public class StringTermsTests extends ElasticsearchIntegrationTest {
 
     @Test
     public void emptyAggregation() throws Exception {
-        prepareCreate("empty_bucket_idx").addMapping("type", SINGLE_VALUED_FIELD_NAME, "type=integer").execute().actionGet();
-        List<IndexRequestBuilder> builders = new ArrayList<>();
-        for (int i = 0; i < 2; i++) {
-            builders.add(client().prepareIndex("empty_bucket_idx", "type", ""+i).setSource(jsonBuilder()
-                    .startObject()
-                    .field(SINGLE_VALUED_FIELD_NAME, i*2)
-                    .endObject()));
-        }
-        indexRandom(true, builders.toArray(new IndexRequestBuilder[builders.size()]));
-
         SearchResponse searchResponse = client().prepareSearch("empty_bucket_idx")
                 .setQuery(matchAllQuery())
                 .addAggregation(histogram("histo").field(SINGLE_VALUED_FIELD_NAME).interval(1l).minDocCount(0)
