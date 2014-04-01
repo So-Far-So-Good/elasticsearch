@@ -36,7 +36,6 @@ import org.elasticsearch.rest.helper.HttpClient;
 import org.elasticsearch.rest.helper.HttpClientResponse;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.elasticsearch.test.ElasticsearchIntegrationTest.ClusterScope;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.elasticsearch.test.junit.annotations.Network;
 import org.junit.After;
 import org.junit.Before;

@@ -35,7 +35,6 @@ import org.elasticsearch.nodesinfo.plugin.dummy1.TestPlugin;
 import org.elasticsearch.nodesinfo.plugin.dummy2.TestNoVersionPlugin;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.elasticsearch.test.ElasticsearchIntegrationTest.ClusterScope;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.junit.Test;
 
 import java.io.File;

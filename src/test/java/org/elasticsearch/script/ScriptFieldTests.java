@@ -27,7 +27,6 @@ import org.elasticsearch.plugins.AbstractPlugin;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.elasticsearch.test.ElasticsearchIntegrationTest.ClusterScope;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
 
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
